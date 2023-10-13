@@ -27,13 +27,13 @@ class ExistProduct extends ProductEvent {
 }
 
 class UpdateProduct extends ProductEvent {
-  UpdateProduct({required this.barcode, required this.count});
+  UpdateProduct({required this.id, required this.count});
 
-  final String barcode;
+  final int id;
   final String count;
 
   @override
-  List<Object?> get props => [count, barcode];
+  List<Object?> get props => [count, id];
 }
 
 class DeleteProduct extends ProductEvent {

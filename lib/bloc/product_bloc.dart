@@ -6,14 +6,13 @@ import 'package:shop_helper/bloc/product_state.dart';
 import 'package:shop_helper/data/local/sqflite.dart';
 import 'package:shop_helper/data/model/product_model.dart';
 import 'package:shop_helper/data/model/status.dart';
-import 'package:shop_helper/data/model/universal_data.dart';
 
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
   ProductBloc()
       : super(
           const ProductState(
             status: FormStatus.pure,
-            users: [],
+            products: [],
             statusText: '',
             isExists: false,
             id: 0,
@@ -35,22 +34,35 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       state.copyWith(
         statusText: 'Product added',
         status: FormStatus.success,
-        users: [
-          ...state.users,
+        products: [
+          ...state.products,
           event.newProduct,
         ],
       ),
     );
   }
 
-  _isExist(ExistProduct event, Emitter<ProductState> emit) async {
-    debugPrint('Exist product bloc');
-    emit(state.copyWith(
-        status: FormStatus.loading, statusText: 'Checking new product...'));
-    bool result = await LocalDatabase.checkValueExists(event.barcode);
-    emit(
-      state.copyWith(status: FormStatus.success, isExists: result),
-    );
+  _isExist(ExistProduct event, Emitter<ProductState> emit) {
+    bool isBarcodeFound = false;
+    ProductModel? productModel;
+    state.products;
+    for (ProductModel product in state.products) {
+      if (product.barcode == event.barcode) {
+        isBarcodeFound = true;
+        productModel = product;
+        break;
+      }
+    }
+    debugPrint('Event barcode: ${event.barcode}');
+
+    if (isBarcodeFound) {
+      debugPrint('The given barcode is found in the products.');
+      emit(state.copyWith(
+          isExists: true, status: FormStatus.pure, product: productModel));
+    } else {
+      debugPrint('The given barcode is not found in the products.');
+      emit(state.copyWith(isExists: false, status: FormStatus.pure));
+    }
   }
 
   _getUser(GetProduct event, Emitter<ProductState> emit) async {
@@ -63,7 +75,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         state.copyWith(
           statusText: 'Product is empty',
           status: FormStatus.success,
-          users: [...state.users, ...userModel],
+          products: [...state.products, ...userModel],
         ),
       );
     } else {
@@ -71,7 +83,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         state.copyWith(
           statusText: 'Product arrived',
           status: FormStatus.success,
-          users: [...userModel],
+          products: [...userModel],
         ),
       );
     }
@@ -79,27 +91,19 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
   _updateUser(UpdateProduct event, Emitter<ProductState> emit) async {
     emit(state.copyWith(
-        status: FormStatus.loading, statusText: 'Updating user...'));
-    UniversalData data =
-        await LocalDatabase.updateProduct(barcode: event.barcode, count: event.count);
+        status: FormStatus.loading, statusText: 'Updating product...'));
+    await LocalDatabase.updateProduct(
+      id: event.id,
+      count: event.count,
+    );
     List<ProductModel> userModel = await LocalDatabase.getAllProducts();
-
-    if (data.error.isEmpty) {
-      emit(
-        state.copyWith(
-          statusText: 'Product updated',
-          status: FormStatus.success,
-          users: userModel,
-        ),
-      );
-    } else {
-      emit(
-        state.copyWith(
-          statusText: 'Product deleting error: ${data.error}',
-          status: FormStatus.error,
-        ),
-      );
-    }
+    emit(
+      state.copyWith(
+        statusText: 'Product updated',
+        status: FormStatus.success,
+        products: userModel,
+      ),
+    );
   }
 
   _deleteUser(DeleteProduct event, Emitter<ProductState> emit) async {
@@ -115,7 +119,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       state.copyWith(
         statusText: 'Product deleted',
         status: FormStatus.success,
-        users: userModel,
+        products: userModel,
       ),
     );
   }

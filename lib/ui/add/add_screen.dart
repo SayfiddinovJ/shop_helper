@@ -8,7 +8,6 @@ import 'package:shop_helper/bloc/product_event.dart';
 import 'package:shop_helper/bloc/product_state.dart';
 import 'package:shop_helper/data/model/product_model.dart';
 import 'package:shop_helper/data/model/status.dart';
-import 'package:shop_helper/ui/sell/sell_screen.dart';
 import 'package:shop_helper/ui/widgets/global_text_field.dart';
 import 'package:shop_helper/utils/extension.dart';
 
@@ -21,30 +20,13 @@ class AddScreen extends StatefulWidget {
 
 class _AddScreenState extends State<AddScreen> {
   TextEditingController nameController = TextEditingController();
-
   TextEditingController countController = TextEditingController();
-
   TextEditingController barcodeController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SellScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.import_export),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Add product')),
       body: BlocConsumer<ProductBloc, ProductState>(
         builder: (context, state) {
           if (state.status == FormStatus.loading) {
@@ -71,14 +53,48 @@ class _AddScreenState extends State<AddScreen> {
                   controller: barcodeController,
                   suffixIcon: IconButton(
                     onPressed: () async {
-                      String barcodeScanRes =
-                          await FlutterBarcodeScanner.scanBarcode(
-                        'blue',
-                        'Cancel',
-                        true,
-                        ScanMode.BARCODE,
-                      );
-                      barcodeController.text = barcodeScanRes;
+                      String barcodeScanRes = '';
+                      showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ListTile(
+                                      title: const Text('Barcode'),
+                                      onTap: () async {
+                                        barcodeController.text =
+                                            await FlutterBarcodeScanner
+                                                .scanBarcode(
+                                          'blue',
+                                          'Cancel',
+                                          true,
+                                          ScanMode.BARCODE,
+                                        );
+                                        if (context.mounted) {
+                                          Navigator.pop(context);
+                                        }
+                                      },
+                                    ),
+                                    ListTile(
+                                      title: const Text('QR Code'),
+                                      onTap: () async {
+                                        barcodeController.text =
+                                            await FlutterBarcodeScanner
+                                                .scanBarcode(
+                                          'blue',
+                                          'Cancel',
+                                          true,
+                                          ScanMode.QR,
+                                        );
+                                        if (context.mounted) {
+                                          Navigator.pop(context);
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ));
                       debugPrint('Barcode: $barcodeScanRes');
                     },
                     icon: const Icon(Icons.barcode_reader),
@@ -86,6 +102,7 @@ class _AddScreenState extends State<AddScreen> {
                 ),
                 24.ph,
                 SizedBox(
+                  height: 56.h,
                   width: MediaQuery.of(context).size.width,
                   child: ElevatedButton(
                     onPressed: () {
@@ -95,7 +112,12 @@ class _AddScreenState extends State<AddScreen> {
                         context
                             .read<ProductBloc>()
                             .add(ExistProduct(barcode: barcodeController.text));
+                        debugPrint('Product: ${state.product}');
                         if (state.isExists) {
+                          Fluttertoast.showToast(
+                            msg: 'This barcode has already been entered',
+                            backgroundColor: Colors.blue,
+                          );
                         } else {
                           context.read<ProductBloc>().add(
                                 AddProduct(
@@ -106,11 +128,15 @@ class _AddScreenState extends State<AddScreen> {
                                   ),
                                 ),
                               );
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
                         }
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Fields are not filled')));
+                        Fluttertoast.showToast(
+                          msg: "Fields not filled",
+                          backgroundColor: Colors.blue,
+                        );
                       }
                     },
                     child: const Text("Add product"),
@@ -122,11 +148,10 @@ class _AddScreenState extends State<AddScreen> {
         },
         listener: (context, state) async {
           if (state.status == FormStatus.success) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Product added')));
-            if (context.mounted) {
-              Navigator.pop(context);
-            }
+            Fluttertoast.showToast(
+              msg: "Product added",
+              backgroundColor: Colors.blue,
+            );
           }
         },
       ),

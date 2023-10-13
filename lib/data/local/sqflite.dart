@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:shop_helper/data/model/product_model.dart';
 import 'package:sqflite/sqflite.dart';
@@ -60,14 +61,20 @@ class LocalDatabase {
     return allProducts;
   }
 
-  static updateProduct({required String barcode, required String count}) async {
+  static updateProduct({required int id, required String count}) async {
     final db = await getInstance.database;
-    db.update(
-      ProductModelFields.count,
-      {ProductModelFields.count: count},
-      where: "${ProductModelFields.barcode} = ?",
-      whereArgs: [barcode],
-    );
+    try {
+      db.update(
+        ProductModelFields.dbTable,
+        {ProductModelFields.count: count},
+        where: "${ProductModelFields.id} = ?",
+        whereArgs: [id],
+      );
+
+      return debugPrint('Product updated successfully');
+    } catch (e) {
+      return debugPrint('Updating in error: $e');
+    }
   }
 
   static deleteProduct(int id) async {
@@ -77,16 +84,5 @@ class LocalDatabase {
       where: "${ProductModelFields.id} = ?",
       whereArgs: [id],
     );
-  }
-
- static Future<bool> checkValueExists(String value) async {
-   final db = await getInstance.database;
-
-    final result = await db.query(
-      ProductModelFields.dbTable,
-      where: '${ProductModelFields.barcode} = ?',
-      whereArgs: [value],
-    );
-    return result.isNotEmpty;
   }
 }
